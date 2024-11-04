@@ -12,8 +12,10 @@ Created on Sun Oct 13 15:37:08 2019
 # pip install pandas
 # pip install openpyxl
 # pip install xlsxwriter
+# pip install requests
 
 
+from numpy import save
 import pandas as pd
 import PyPDF2
 from pathlib import Path
@@ -22,8 +24,48 @@ import os.path
 import urllib
 import glob
 import urllib.request
+import requests
 
+class NotAPdfError(Exception):
+    pass
 
+def check_link2():
+    if df2.at[j,'Report Html Address'] != "":
+        print("is html pdf")
+        if not pdf_url(df2.at[j,'Report Html Address']):
+            raise NotAPdfError(f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF.")
+        else: 
+            download(savefile,'Report Html Address')
+
+def pdf_url(url):
+     try:
+         r = requests.get(url,timeout=2)
+         content_type = r.headers.get('content-type')
+         if 'application/pdf' in content_type:
+             ext = '.pdf'
+             return True
+         else:
+             return False
+     except requests.RequestException as e:
+        print(f"Error checking URL {url}: {e}")
+        return False
+
+def download(savefile,url_type ='Pdf_URL'):
+    try:
+        urllib.request.urlretrieve(df2.at[j,url_type], savefile)
+        if os.path.isfile(savefile):
+            with open(savefile, 'rb') as pdfFileObj:
+                pdfReader = PyPDF2.PdfReader(pdfFileObj)
+                if len(pdfReader.pages) > 0:
+                    df2.at[j, 'pdf_downloaded'] = "yes"
+                else:
+                    df2.at[j, 'pdf_downloaded'] = "file_error"
+        else:
+            df2.at[j, 'pdf_downloaded'] = "404"
+            print("not a file")
+    except Exception as e:
+        df2.at[j, 'pdf_downloaded'] = str(e)
+        print(str(str(j)+" " + str(e)))           
 
 ###!!NB!! column with URL's should be called: "Pdf_URL" and the year should be in column named: "Pub_Year"
 
@@ -68,56 +110,77 @@ df2 = df.copy()
 
 
 #writer = pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter', options={'strings_to_urls': False}) # didnt recognise option choise
-writer = pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter')
+# writer = pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter')
 
 
 
+with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
+    ### filter out rows that have been downloaded
+    df2 = df2[~df2.index.isin(exist)]
 
-### filter out rows that have been downloaded
-df2 = df2[~df2.index.isin(exist)]
+    ### loop through dataset, try to download file.
+    # for j in df2.index:
+    for j in df2.index:
+        print(df2.at[j,'Pdf_URL'])
+        # savefile = str(pth + "dwn/" + str(j) + '.pdf')
+        savefile = str(pth + "existing_files/" + str(j) + '.pdf')
+        try:
+            # check first link
+            if df2.at[j,'Pdf_URL'] != "":
+                print("url")
+                if not pdf_url(df2.at[j,'Pdf_URL']):
+                    # raise NotAPdfError(f"URL {df2.at[j, 'Pdf_URL']} is not a valid PDF.")
+                    check_link2()
+                elif  df2.at[j,'Report Html Address'] != "":
+                    check_link2()
 
-### loop through dataset, try to download file.
-# for j in df2.index:
-for j in df2.index[0:9]:
-    # savefile = str(pth + "dwn/" + str(j) + '.pdf')
-    savefile = str(pth + "existing_files/" + str(j) + '.pdf')
 
-    try:
-        urllib.request.urlretrieve(df2.at[j,'Pdf_URL'], savefile)
-        if os.path.isfile(savefile):
-            try:
-               pdfFileObj = open(savefile, 'rb')
-               # creating a pdf reader object
-               # pdfReader = PyPDF2.PdfFileReader(pdfFileObj)# decrepit
-               pdfReader = PyPDF2.PdfReader(pdfFileObj)
+                else:
+                    download(savefile,'Pdf_URL')
+            # elif df2.at[j,'Report Html Address'] != "":
+            #     print("is html pdf")
 
-               with open(savefile, 'rb') as pdfFileObj:
-                    # pdfReader = PyPDF2.PdfFileReader(pdfFileObj) # decrepit
-                    pdfReader = PyPDF2.PdfReader(pdfFileObj)
+            #     if not pdf_url(df2.at[j,'Report Html Address']):
+            #         raise NotAPdfError(f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF.")
+            #     else: 
+            #         download(savefile,'Report Html Address')
+            else:
+                raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
+                df2.at[j, 'pdf_downloaded'] = "Not_A_PDF_ERROR"    
+                break
 
-                    print(pdfReader)
-                    # if pdfReader.numPages > 0:# decrepit
-                    if len(pdfReader.pages) > 0:
+            # if os.path.isfile(savefile):
+            #     try:
+            #        with open(savefile, 'rb') as pdfFileObj:
+            #             # pdfReader = PyPDF2.PdfFileReader(pdfFileObj) # decrepit
+            #             pdfReader = PyPDF2.PdfReader(pdfFileObj)
 
-                        df2.at[j, 'pdf_downloaded'] = "yes"
-
-                    else:
-                        df2.at[j, 'pdf_downloaded'] = "file_error"
+            #             print(pdfReader)
+            #             # if pdfReader.numPages > 0:# decrepit
+            #             if len(pdfReader.pages) > 0:
+            #                 # if pdf is not empty write "yes" in the pdf_downloaded column in metadata?
+            #                 df2.at[j, 'pdf_downloaded'] = "yes"
+            #             else:
+            #                 df2.at[j, 'pdf_downloaded'] = "file_error"
                    
-            except Exception as e:
-               df2.at[j, 'pdf_downloaded'] = str(e)
-               print(str(str(j)+" " + str(e)))
-        else:
-            df2.at[j, 'pdf_downloaded'] = "404"
-            print("not a file")
+            #     except Exception as e:
+            #        df2.at[j, 'pdf_downloaded'] = str(e)
+            #        print(str(str(j)+" " + str(e)))
+            # else:
+            #     df2.at[j, 'pdf_downloaded'] = "404"
+            #     print("not a file")
          
-    except (urllib.error.HTTPError, urllib.error.URLError, ConnectionResetError, Exception ) as e:
-                df2.at[j,"error"] = str(e)
+        except (urllib.error.HTTPError, urllib.error.URLError, ConnectionResetError, Exception ) as e:
+                    df2.at[j,"error"] = str(e)
+                   
 
-    
-    
+      
+
+
+
+
 
 
 df2.to_excel(writer, sheet_name="dwn")
-writer.save()
-writer.close()
+# writer._save() # decrepit
+# writer.close()
