@@ -28,10 +28,13 @@ import requests
 
 class NotAPdfError(Exception):
     pass
+class MyError(Exception):
+    pass
+
 
 def check_link2():
     if df2.at[j,'Report Html Address'] != "":
-        print("is html pdf")
+        print("try 2")
         if not pdf_url(df2.at[j,'Report Html Address']):
             raise NotAPdfError(f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF.")
         else: 
@@ -127,16 +130,17 @@ with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
         try:
             # check first link
             if df2.at[j,'Pdf_URL'] != "":
-                print("url")
+                print("Try 1")
                 if not pdf_url(df2.at[j,'Pdf_URL']):
                     # raise NotAPdfError(f"URL {df2.at[j, 'Pdf_URL']} is not a valid PDF.")
                     check_link2()
-                elif  df2.at[j,'Report Html Address'] != "":
-                    check_link2()
-
-
                 else:
                     download(savefile,'Pdf_URL')
+                    if   df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "":
+                        check_link2()
+                        if   df2.at[j, 'pdf_downloaded'] != "yes": 
+                            raise MyError(f"{ID} has an unencoutered for error.")
+                            df2.at[j, 'pdf_downloaded'] = "file_error"
             # elif df2.at[j,'Report Html Address'] != "":
             #     print("is html pdf")
 
@@ -147,7 +151,7 @@ with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
             else:
                 raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
                 df2.at[j, 'pdf_downloaded'] = "Not_A_PDF_ERROR"    
-                break
+                
 
             # if os.path.isfile(savefile):
             #     try:
