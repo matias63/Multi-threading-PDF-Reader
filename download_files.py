@@ -34,7 +34,7 @@ class MyError(Exception):
 
 def check_link2():
     if df2.at[j,'Report Html Address'] != "":
-        print("try 2")
+        print("Link 2")
         if not pdf_url(df2.at[j,'Report Html Address']):
             raise NotAPdfError(f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF.")
         else: 
@@ -130,50 +130,20 @@ with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
         try:
             # check first link
             if df2.at[j,'Pdf_URL'] != "":
-                print("Try 1")
-                if not pdf_url(df2.at[j,'Pdf_URL']):
-                    # raise NotAPdfError(f"URL {df2.at[j, 'Pdf_URL']} is not a valid PDF.")
-                    check_link2()
-                else:
-                    download(savefile,'Pdf_URL')
-                    if   df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "":
+                print("Link 1")
+                if not pdf_url(df2.at[j,'Pdf_URL']): # if not the first link, check the second link
+                    check_link2() 
+                else: # else check link 1
+                    download(savefile,'Pdf_URL') 
+                    if   df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "": # if link 1 fails, check link 2
                         check_link2()
-                        if   df2.at[j, 'pdf_downloaded'] != "yes": 
+                        if   df2.at[j, 'pdf_downloaded'] != "yes": # if link 2 fails , raise error
                             raise MyError(f"{ID} has an unencoutered for error.")
-                            df2.at[j, 'pdf_downloaded'] = "file_error"
-            # elif df2.at[j,'Report Html Address'] != "":
-            #     print("is html pdf")
-
-            #     if not pdf_url(df2.at[j,'Report Html Address']):
-            #         raise NotAPdfError(f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF.")
-            #     else: 
-            #         download(savefile,'Report Html Address')
+                            df2.at[j, 'pdf_downloaded'] = "file_error" # set error in output file
             else:
                 raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
                 df2.at[j, 'pdf_downloaded'] = "Not_A_PDF_ERROR"    
                 
-
-            # if os.path.isfile(savefile):
-            #     try:
-            #        with open(savefile, 'rb') as pdfFileObj:
-            #             # pdfReader = PyPDF2.PdfFileReader(pdfFileObj) # decrepit
-            #             pdfReader = PyPDF2.PdfReader(pdfFileObj)
-
-            #             print(pdfReader)
-            #             # if pdfReader.numPages > 0:# decrepit
-            #             if len(pdfReader.pages) > 0:
-            #                 # if pdf is not empty write "yes" in the pdf_downloaded column in metadata?
-            #                 df2.at[j, 'pdf_downloaded'] = "yes"
-            #             else:
-            #                 df2.at[j, 'pdf_downloaded'] = "file_error"
-                   
-            #     except Exception as e:
-            #        df2.at[j, 'pdf_downloaded'] = str(e)
-            #        print(str(str(j)+" " + str(e)))
-            # else:
-            #     df2.at[j, 'pdf_downloaded'] = "404"
-            #     print("not a file")
-         
         except (urllib.error.HTTPError, urllib.error.URLError, ConnectionResetError, Exception ) as e:
                     df2.at[j,"error"] = str(e)
                    
@@ -186,5 +156,3 @@ with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
 
 
 df2.to_excel(writer, sheet_name="dwn")
-# writer._save() # decrepit
-# writer.close()
