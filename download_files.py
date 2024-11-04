@@ -9,6 +9,10 @@ Created on Sun Oct 13 15:37:08 2019
    # then uncomment line below (i.e. remove the #):
        
 # pip install PyPDF2
+# pip install pandas
+# pip install openpyxl
+# pip install xlsxwriter
+
 
 import pandas as pd
 import PyPDF2
