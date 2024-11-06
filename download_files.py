@@ -132,6 +132,25 @@ def check_existing_download_tries():
         print (checked_Brnum) # FOR SOME REASON THIS DOESNT WORK
     return checked_Brnum
 
+            # TRY with powerpyxl
+# def check_existing_download_tries():
+#     path = 'checked_links.xlsx'
+#     current_dir = os.getcwd()
+#     subfolder = 'downloaded_files'
+#     path_to_xlsx = os.path.join(current_dir, subfolder, path)
+#     print(path_to_xlsx)
+
+#     checked_Brnum = []
+#     if os.path.isfile(path_to_xlsx):
+#         workbook = openpyxl.load_workbook(path_to_xlsx)
+
+#         sheet = workbook['Sheet1']
+#         for row in sheet.iter_rows(min_row=2, values_only=True):
+#             if row[42]== "":
+#                 print(row[0])
+#                 checked_Brnum.append(row[0])
+
+
 ###!!NB!! column with URL's should be called: "Pdf_URL" and the year should be in column named: "Pub_Year"
 
 ### File names will be the ID from the ID column (e.g. BR2005.pdf)
@@ -225,5 +244,7 @@ output_path = os.path.join(pth, 'checked_links.xlsx')
 with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
 
     df2.to_excel(writer, sheet_name="Sheet1")  
-    # print(not_working_links)
+    a = check_existing_download_tries()
+    print(not_working_links)
+    print(a)
 
