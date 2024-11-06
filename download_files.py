@@ -15,6 +15,7 @@ Created on Sun Oct 13 15:37:08 2019
 # pip install requests
 
 
+
 from numpy import save
 import pandas as pd
 import PyPDF2
@@ -26,15 +27,28 @@ import glob
 import urllib.request
 import requests
 
+
 class NotAPdfError(Exception):
     pass
 class MyError(Exception):
     pass
 
 
+### bug that produces the empty pdfs as well
+# def tryAgain(amount,function,retries=0):
+#     if retries > amount: return False
+#     try:
+#         if lambda x: function == True:
+#             return True
+#     except:
+#         tryAgain(amount,function,retries+1)
+
+
+
 def check_link2():
     if df2.at[j,'Report Html Address'] != "":
-        print("Link 2")
+        print("try 2")
+        # if not tryAgain(3,pdf_url(df2.at[j,'Report Html Address'])):
         if not pdf_url(df2.at[j,'Report Html Address']):
             raise NotAPdfError(f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF.")
         else: 
@@ -42,7 +56,7 @@ def check_link2():
 
 def pdf_url(url):
      try:
-         r = requests.get(url,timeout=2)
+         r = requests.get(url,timeout=4)
          content_type = r.headers.get('content-type')
          if 'application/pdf' in content_type:
              ext = '.pdf'
@@ -123,27 +137,59 @@ with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
 
     ### loop through dataset, try to download file.
     # for j in df2.index:
-    for j in df2.index:
+    for j in df2.index[0:9]:
         print(df2.at[j,'Pdf_URL'])
         # savefile = str(pth + "dwn/" + str(j) + '.pdf')
         savefile = str(pth + "existing_files/" + str(j) + '.pdf')
         try:
             # check first link
             if df2.at[j,'Pdf_URL'] != "":
-                print("Link 1")
-                if not pdf_url(df2.at[j,'Pdf_URL']): # if not the first link, check the second link
-                    check_link2() 
-                else: # else check link 1
-                    download(savefile,'Pdf_URL') 
-                    if   df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "": # if link 1 fails, check link 2
+                print("Try 1")
+                # if not tryAgain(3, pdf_url(df2.at[j,'Pdf_URL'])):
+                if not pdf_url(df2.at[j,'Pdf_URL']):
+
+                    # raise NotAPdfError(f"URL {df2.at[j, 'Pdf_URL']} is not a valid PDF.")
+                    check_link2()
+                else:
+                    download(savefile,'Pdf_URL')
+                    if   df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "":
                         check_link2()
-                        if   df2.at[j, 'pdf_downloaded'] != "yes": # if link 2 fails , raise error
+                        if   df2.at[j, 'pdf_downloaded'] == "": 
                             raise MyError(f"{ID} has an unencoutered for error.")
-                            df2.at[j, 'pdf_downloaded'] = "file_error" # set error in output file
+                            df2.at[j, 'pdf_downloaded'] = "file_error"
+            # elif df2.at[j,'Report Html Address'] != "":
+            #     print("is html pdf")
+
+            #     if not pdf_url(df2.at[j,'Report Html Address']):
+            #         raise NotAPdfError(f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF.")
+            #     else: 
+            #         download(savefile,'Report Html Address')
             else:
                 raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
                 df2.at[j, 'pdf_downloaded'] = "Not_A_PDF_ERROR"    
                 
+
+            # if os.path.isfile(savefile):
+            #     try:
+            #        with open(savefile, 'rb') as pdfFileObj:
+            #             # pdfReader = PyPDF2.PdfFileReader(pdfFileObj) # decrepit
+            #             pdfReader = PyPDF2.PdfReader(pdfFileObj)
+
+            #             print(pdfReader)
+            #             # if pdfReader.numPages > 0:# decrepit
+            #             if len(pdfReader.pages) > 0:
+            #                 # if pdf is not empty write "yes" in the pdf_downloaded column in metadata?
+            #                 df2.at[j, 'pdf_downloaded'] = "yes"
+            #             else:
+            #                 df2.at[j, 'pdf_downloaded'] = "file_error"
+                   
+            #     except Exception as e:
+            #        df2.at[j, 'pdf_downloaded'] = str(e)
+            #        print(str(str(j)+" " + str(e)))
+            # else:
+            #     df2.at[j, 'pdf_downloaded'] = "404"
+            #     print("not a file")
+         
         except (urllib.error.HTTPError, urllib.error.URLError, ConnectionResetError, Exception ) as e:
                     df2.at[j,"error"] = str(e)
                    
@@ -156,3 +202,5 @@ with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
 
 
 df2.to_excel(writer, sheet_name="dwn")
+# writer._save() # decrepit
+# writer.close()
