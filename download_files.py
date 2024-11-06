@@ -155,8 +155,8 @@ with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
                     if   df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "":
                         check_link2()
                         if   df2.at[j, 'pdf_downloaded'] == "": 
-                            raise MyError(f"{ID} has an unencoutered for error.")
                             df2.at[j, 'pdf_downloaded'] = "file_error"
+                            raise MyError(f"{ID} has an unencoutered for error.")
             # elif df2.at[j,'Report Html Address'] != "":
             #     print("is html pdf")
 
@@ -165,8 +165,8 @@ with pd.ExcelWriter(pth+'check_3.xlsx', engine='xlsxwriter') as writer:
             #     else: 
             #         download(savefile,'Report Html Address')
             else:
-                raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
                 df2.at[j, 'pdf_downloaded'] = "Not_A_PDF_ERROR"    
+                raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
                 
 
             # if os.path.isfile(savefile):
