@@ -57,12 +57,14 @@ def check_link2(savefile,j):
     if df2.at[j,'Report Html Address'] != "":
         print("try 2")
         # if not tryAgain(3,pdf_url(df2.at[j,'Report Html Address'])):
-        if not pdf_url(df2.at[j,'Report Html Address']):
+        if not is_url_pdf(df2.at[j,'Report Html Address']):
+            df2.at[j, 'pdf_downloaded'] = "not downloadet"
+            df2.at[j, 'error'] = f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF."
             raise NotAPdfError(f"URL {df2.at[j, 'Report Html Address']} is not a valid PDF.")
         else: 
             download(savefile,'Report Html Address')
 
-def pdf_url(url):
+def is_url_pdf(url):
      try:
          r = requests.get(url,timeout=4)
          content_type = r.headers.get('content-type')
@@ -72,7 +74,8 @@ def pdf_url(url):
          else:
              return False
      except requests.RequestException as e:
-        print(f"Error checking URL {url}: {e}")
+        # df2.at[j, 'pdf_downloaded'] = "not downloadet"
+        df2.at[j, 'error'] = f"Error checking URL {url}: {e}"
         return False
 
 def download(savefile,j,url_type ='Pdf_URL'):
@@ -84,87 +87,70 @@ def download(savefile,j,url_type ='Pdf_URL'):
                 if len(pdfReader.pages) > 0:
                     df2.at[j, 'pdf_downloaded'] = "yes"
                 else:
-                    df2.at[j, 'pdf_downloaded'] = "file_error"
+                    df2.at[j, 'error'] = "file_error"
+                    # df2.at[j, 'pdf_downloaded'] = "not downloadet"
         else:
-            df2.at[j, 'pdf_downloaded'] = "404"
+            df2.at[j, 'error'] = "404"
+            # df2.at[j, 'pdf_downloaded'] = "not downloadet"
             print("not a file")
     except Exception as e:
-        df2.at[j, 'pdf_downloaded'] = str(e)
+        # df2.at[j, 'pdf_downloaded'] = str(e)
+        # df2.at[j, 'pdf_downloaded'] = str(e)
+
         print(str(str(j)+" " + str(e)))           
 
 
 def download_pdf(df2,j):
-        print(df2.at[j,'Pdf_URL'])
-        savefile = str(pth + "existing_files/" + str(j) + '.pdf')
         try:
-            # check first link
-            if df2.at[j,'Pdf_URL'] != "": # if link 1 is not empty url string
-                print("Try 1")
-                # if not tryAgain(3, pdf_url(df2.at[j,'Pdf_URL'])):
-                if not pdf_url(df2.at[j,'Pdf_URL']): # if link 1 is not a valid url
-                    check_link2(savefile,j)         # check link 2
+            savefile = str(pth + "existing_files/" + str(j) + '.pdf')
+            if df2.at[j,'pdf_downloaded'] != "not downloadet":
+                # check first link
+                if df2.at[j,'Pdf_URL'] != "": # if link 1 is not empty url string
+                    print("Try 1")
+                    # if not tryAgain(3, pdf_url(df2.at[j,'Pdf_URL'])):
+                    if not is_url_pdf(df2.at[j,'Pdf_URL']): # if link 1 is not a valid url
+                        check_link2(savefile,j)         # check link 2
+                    else:
+                        download(savefile,j,'Pdf_URL') # download link 1
+                        if df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "": # if link 1 fails, check link 2
+                            check_link2(savefile,j) # check link 2 and download if possible
+                            if df2.at[j, 'pdf_downloaded'] == "":  # if pdf has not been downloaded, raise error
+                                # df2.at[j, 'pdf_downloaded'] = "not downloadet"
+                                df2.at[j, 'error'] = "file_error"
+                                raise MyError(f"{ID} has an unencoutered for error.")
                 else:
-                    download(savefile,j,'Pdf_URL') # download link 1
-                    if df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "": # if link 1 fails, check link 2
-                        check_link2(savefile,j) # check link 2 and download if possible
-                        if df2.at[j, 'pdf_downloaded'] == "":  # if pdf has not been downloaded, raise error
-                            df2.at[j, 'pdf_downloaded'] = "file_error"
-                            raise MyError(f"{ID} has an unencoutered for error.")
-            else:
-                df2.at[j, 'pdf_downloaded'] = "Not_A_PDF_ERROR"
-                raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
+                    df2.at[j, 'error'] = "Not_A_PDF_ERROR"
+                    # df2.at[j, 'pdf_downloaded'] = "not downloadet"
 
+                    raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
+            
         except (urllib.error.HTTPError, urllib.error.URLError, ConnectionResetError, Exception ) as e:
-                    df2.at[j,"error"] = str(e)           
+                    df2.at[j,"error"] = str(e)
+                    print(df2.at[j,'Pdf_URL'])  
+                    df2.at[j,"pdf_downloaded"] = "not downloadet"
 
-def check_existing_download_tries():
-    path = 'checked_links.xlsx'
-    current_dir = os.getcwd()
-    subfolder = 'downloaded_files'
-    path_to_xlsx = os.path.join(current_dir, subfolder, path)
-    print(path_to_xlsx)
-
-    checked_Brnum = []
-    if os.path.isfile(path_to_xlsx):
-        data = pd.read_excel(path_to_xlsx)  
-        looked_through_records = data[data['error'].isna() | (data['error'] == "")]
-        checked_Brnum = looked_through_records['BRnum'].tolist()
-        print (checked_Brnum) # FOR SOME REASON THIS DOESNT WORK
-    return checked_Brnum
-
-            # TRY with powerpyxl
 # def check_existing_download_tries():
-#     path = 'checked_links.xlsx'
+#     path = r'checked_links.xlsx'
 #     current_dir = os.getcwd()
-#     subfolder = 'downloaded_files'
+#     subfolder = r'downloaded_files'
 #     path_to_xlsx = os.path.join(current_dir, subfolder, path)
-#     print(path_to_xlsx)
 
-#     checked_Brnum = []
 #     if os.path.isfile(path_to_xlsx):
-#         workbook = openpyxl.load_workbook(path_to_xlsx)
-
-#         sheet = workbook['Sheet1']
-#         for row in sheet.iter_rows(min_row=2, values_only=True):
-#             if row[42]== "":
-#                 print(row[0])
-#                 checked_Brnum.append(row[0])
+#         data = pd.read_excel(path_to_xlsx, engine='openpyxl')
+#         looked_through_records = data[data['error'].notna()]['BRnum'].tolist()
+#         return looked_through_records
+#     else:
+#         return []
 
 
-###!!NB!! column with URL's should be called: "Pdf_URL" and the year should be in column named: "Pub_Year"
-
-### File names will be the ID from the ID column (e.g. BR2005.pdf)
-
-########## EDIT HERE:
     
 ### specify path to file containing the URLs
-# list_pth = 'K:/TextMining/02 Analysis 8/10 TextMining Projects/CSR/CSR Train/02 Supporting Scripts/01 Scripts input/GRI_2017_2020_SAHO.xlsx'
+
 list_pth = r'./input_files/GRI_2017_2020.xlsx'
 
 
 
 ###specify Output folder (in this case it moves one folder up and saves in the script output folder)
-# 'K:/TextMining/02 Analysis 8/10 TextMining Projects/CSR/CSR Train/02 Supporting Scripts/03 Scripts output/'
 pth = r'./downloaded_files/'
 if not os.path.exists(pth):
     os.makedirs(pth)
@@ -195,56 +181,28 @@ df2 = df.copy()
 
 
 ### filter out rows that have been attempted to download
-not_working_links = check_existing_download_tries()
-df2 = df2[~df2.index.isin(not_working_links)]
+# not_working_links = check_existing_download_tries()
 ### filter out rows that have been downloaded
 df2 = df2[~df2.index.isin(exist)]
+# df2 = df2[~df2.index.isin(not_working_links)]
+# print(not_working_links)
 
 ### loop through dataset, try to download file.
-args = [(df2,j) for j in df2.index[0:9]]
+args = [(df2,j) for j in df2.index[0:20]]
  
 with ThreadPoolExecutor(max_workers=8) as executor:
     futures = [executor.submit(download_pdf, df, j) for df,j in args]
 
 for future in futures:
     future.result()
-        
-
-    
-    ### loop through dataset, try to download file.
-    # for j in df2.index:
-    # for j in df2.index[0:9]:
-    #     print(df2.at[j,'Pdf_URL'])
-    #     savefile = str(pth + "existing_files/" + str(j) + '.pdf')
-    #     try:
-    #         # check first link
-    #         if df2.at[j,'Pdf_URL'] != "":
-    #             print("Try 1")
-    #             # if not tryAgain(3, pdf_url(df2.at[j,'Pdf_URL'])):
-    #             if not pdf_url(df2.at[j,'Pdf_URL']):
-    #                 check_link2()
-    #             else:
-    #                 download(savefile,'Pdf_URL')
-    #                 if   df2.at[j, 'pdf_downloaded'] != "yes" and df2.at[j,'Report Html Address'] != "":
-    #                     check_link2()
-    #                     if   df2.at[j, 'pdf_downloaded'] == "": 
-    #                         df2.at[j, 'pdf_downloaded'] = "file_error"
-    #                         raise MyError(f"{ID} has an unencoutered for error.")
-    #         else:
-    #             df2.at[j, 'pdf_downloaded'] = "Not_A_PDF_ERROR"    
-    #             raise NotAPdfError(f"URL {df2.at[j, 'pdf_downloaded']} is not a valid PDF.")
-
-    #     except (urllib.error.HTTPError, urllib.error.URLError, ConnectionResetError, Exception ) as e:
-    #                 df2.at[j,"error"] = str(e)
-                   
+             
 
       
 output_df = df2.copy()
-output_path = os.path.join(pth, 'checked_links.xlsx')
-with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+# output_path = os.path.join(pth, 'checked_links.xlsx')
+output_path = list_pth
 
+with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
     df2.to_excel(writer, sheet_name="Sheet1")  
-    a = check_existing_download_tries()
-    print(not_working_links)
-    print(a)
+
 
